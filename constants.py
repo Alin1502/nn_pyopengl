@@ -15,6 +15,7 @@ PIPELINE_TYPE_TEXTURED = 1
 
 OBJECT_TYPE_MODEL = 0
 OBJECT_TYPE_QUAD = 1
+OBJECT_TYPE_MODEL2 = 2
 
 SHADER_FILENAMES = {
     PIPELINE_TYPE_COLORED: ("shaders/colored_vertex.txt", "shaders/colored_fragment.txt"),

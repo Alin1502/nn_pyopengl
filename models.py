@@ -15,10 +15,10 @@ DATA_TYPE_COLORED_VERTEX = np.dtype({
 })
 
 DATA_TYPE_VERTEX = np.dtype({
-    'names': ['x', 'y', 'z', 'u', 'v'],
-    'formats': [np.float32, np.float32, np.float32, np.float32, np.float32],
-    'offsets': [0, 4, 8, 12, 16],
-    'itemsize': 20
+    'names': ['x', 'y', 'z', 'u', 'v', 'nx', 'ny', 'nz'],
+    'formats': [np.float32, np.float32, np.float32, np.float32, np.float32, np.float32, np.float32, np.float32],
+    'offsets': [0, 4, 8, 12, 16, 20, 24, 28],
+    'itemsize': 32
 })
 
 
@@ -131,7 +131,7 @@ class Mesh:
         return self
 
     def build_from_file(self, file: TextIO, material_id: int, pre_transform: Mat4,
-                        v: list[list[float]], vt: list[list[float]], history: dict[str, int]) -> "Mesh":
+                        v: list[list[float]], vt: list[list[float]], vn: list[list[float]], history: dict[str, int]) -> "Mesh":
         self.material_id = material_id
         self.vertices = np.zeros(0, dtype=DATA_TYPE_VERTEX)
         self.indices = []
@@ -148,21 +148,23 @@ class Mesh:
                 read_v(words, v, pre_transform)
             if words[0] == "vt":
                 read_vt(words, vt)
+            if words[0] == "vn":
+                read_vn(words, vn)
             if words[0] == "f":
-                self.read_face(words, v, vt, history)
+                self.read_face(words, v, vt, vn, history)
             original_pos = file.tell()
             line = file.readline()
         self.finalize_model()
         return self
 
-    def read_face(self, words: list[str], v: list[list[float]], vt: list[list[float]], history: dict[str, int]) -> None:
+    def read_face(self, words: list[str], v: list[list[float]], vt: list[list[float]], vn: list[list[float]], history: dict[str, int]) -> None:
         triangle_count = len(words) - 3
         for i in range(triangle_count):
-            self.read_vertex(words[1], v, vt, history)
-            self.read_vertex(words[i + 2], v, vt, history)
-            self.read_vertex(words[i + 3], v, vt, history)
+            self.read_vertex(words[1], v, vt, vn, history)
+            self.read_vertex(words[i + 2], v, vt, vn, history)
+            self.read_vertex(words[i + 3], v, vt, vn, history)
 
-    def read_vertex(self, words: str, v: list[list[float]], vt: list[list[float]], history: dict[str, int]) -> None:
+    def read_vertex(self, words: str, v: list[list[float]], vt: list[list[float]], vn: list[list[float]], history: dict[str, int]) -> None:
         if words in history:
             self.indices.append(history[words])
             return
@@ -170,16 +172,21 @@ class Mesh:
         history[words] = len(self.vertices)
         self.indices.append(history[words])
 
-        v_vt_vn = [int(word) - 1 for word in words.split("/")]
+        v_vt_vn_indices = [int(word) - 1 for word in words.split("/")]
         new_vertex = np.zeros(1, dtype=DATA_TYPE_VERTEX)
-        pos = v[v_vt_vn[0]]
+        pos = v[v_vt_vn_indices[0]]
         new_vertex[0]['x'] = pos[0]
         new_vertex[0]['y'] = pos[1]
         new_vertex[0]['z'] = pos[2]
 
-        tex_coord = vt[v_vt_vn[1]]
+        tex_coord = vt[v_vt_vn_indices[1]]
         new_vertex[0]['u'] = tex_coord[0]
         new_vertex[0]['v'] = tex_coord[1]
+
+        normal = vn[v_vt_vn_indices[2]]
+        new_vertex[0]['nx'] = normal[0]
+        new_vertex[0]['ny'] = normal[1]
+        new_vertex[0]['nz'] = normal[2]
 
         self.vertices = np.append(self.vertices, new_vertex[0])
 
@@ -198,6 +205,13 @@ class Mesh:
         attribute_index += 1
         offset += 12
         size = 2
+        glVertexAttribPointer(attribute_index, size, GL_FLOAT,
+                              GL_FALSE, stride, ctypes.c_void_p(offset))
+        glEnableVertexAttribArray(attribute_index)
+
+        attribute_index += 1
+        offset += 8
+        size = 3
         glVertexAttribPointer(attribute_index, size, GL_FLOAT,
                               GL_FALSE, stride, ctypes.c_void_p(offset))
         glEnableVertexAttribArray(attribute_index)
@@ -274,6 +288,7 @@ def parse_materials(filename: str, materials: dict[int, Material]) -> dict[str, 
 def load_meshes(filename: str, material_ids: dict[str, int], pre_transform: "Mat4", meshes: list["Mesh"]) -> None:
     v = []
     vt = []
+    vn = []
     history = {}
 
     with open(filename, "r") as file:
@@ -283,10 +298,12 @@ def load_meshes(filename: str, material_ids: dict[str, int], pre_transform: "Mat
                 read_v(words, v, pre_transform)
             if words[0] == "vt":
                 read_vt(words, vt)
+            if words[0] == "vn":
+                read_vn(words, vn)
             if words[0] == "usemtl":
                 material_id = material_ids[words[1]]
                 meshes.append(Mesh().build_from_file(file, material_id, pre_transform,
-                                                     v, vt, history))
+                                                     v, vt, vn, history))
 
 
 def read_v(words: list[str], v: list[list[float]], pre_transform: "Mat4") -> None:
@@ -302,3 +319,10 @@ def read_vt(words: list[str], vt: list[list[float]]) -> None:
     u = float(words[1])
     v = float(words[2])
     vt.append([u, v])
+
+def read_vn(words:list[str], vn: list[list[float]]) -> None:
+    x = float(words[1])
+    y = float(words[2])
+    z = float(words[3])
+
+    vn.append([x,y,z])

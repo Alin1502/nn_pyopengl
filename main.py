@@ -3,7 +3,7 @@ import pygame as pg
 from math_utils import Vec3
 from components import Player, BasicObject
 from models import Material
-from constants import OBJECT_TYPE_MODEL, OBJECT_TYPE_QUAD
+from constants import OBJECT_TYPE_MODEL, OBJECT_TYPE_QUAD, OBJECT_TYPE_MODEL2
 from renderer import Renderer
 import numpy as np
 
@@ -60,12 +60,13 @@ while running:
     handle_mouse(400, 300, player)
     handle_input(player)
     objects = [
-        BasicObject(object_id=OBJECT_TYPE_QUAD, x=3.0, y=0.0, z=0.2),
+        BasicObject(object_id=OBJECT_TYPE_QUAD, x=3.0, y=0.0, z=0.2, yaw=pg.time.get_ticks(), pitch=1.0, roll=1.0),
         BasicObject(object_id=OBJECT_TYPE_MODEL, x=2.0 + pg.time.get_ticks() * 0.001, y=0.0, z=0.0,
+                    yaw=1.0,pitch=1.0, roll=1.0,
                     material=Material().load_from_file("textures/brickwall.jpg")),
-        BasicObject(object_id=OBJECT_TYPE_MODEL, x=4.0, y=0.0, z=0.0,
+        BasicObject(object_id=OBJECT_TYPE_MODEL2, x=4.0, y=0.0, z=0.0,yaw=pg.time.get_ticks(), pitch=pg.time.get_ticks(), roll=1.0,
                     material=Material().load_from_file("textures/brickwall.jpg")),
-        BasicObject(object_id=OBJECT_TYPE_QUAD, x=5.0, y=2.0, z=0.2),
+        BasicObject(object_id=OBJECT_TYPE_QUAD, x=5.0, y=2.0, z=0.2,yaw=pg.time.get_ticks(), pitch=1.0, roll=1.0),
 
     ]
     print(objects[1].transform_component.pos.data[0])

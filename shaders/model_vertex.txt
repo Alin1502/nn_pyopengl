@@ -1,17 +1,23 @@
 #version 330 core
 
-
 layout(location=0) in vec3 vertex_position;
 layout(location=1) in vec2 tex_coord;
+layout(location=2) in vec3 vertex_normal;
 
 out vec2 fragment_tex_coord;
-
+out vec3 fragment_normal;
+out vec3 fragment_world_pos;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
 void main(){
-    gl_Position = projection * view * model * vec4(vertex_position, 1.0);
+    vec4 world_pos = model * vec4(vertex_position, 1.0);
+    gl_Position = projection * view * world_pos;
+    fragment_world_pos = world_pos.xyz;
     fragment_tex_coord = tex_coord;
+    
+    mat3 normal_matrix = mat3(transpose(inverse(model)));
+    fragment_normal = normalize(normal_matrix * vertex_normal);
 }

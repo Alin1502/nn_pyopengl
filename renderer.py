@@ -33,6 +33,14 @@ class Shader:
             self.locations[uniform_type] = glGetUniformLocation(self.program, name)
         glUniformMatrix4fv(self.locations[uniform_type], 1, GL_FALSE, matrix.data)
 
+    def upload_vec3(self, uniform_name: str, x: float, y: float, z: float) -> None:
+        location = glGetUniformLocation(self.program, uniform_name)
+        glUniform3f(location, x, y, z)
+
+    def upload_float(self, uniform_name: str, value: float) -> None:
+        location = glGetUniformLocation(self.program, uniform_name)
+        glUniform1f(location, value)
+
     def destroy(self) -> None:
         glDeleteProgram(self.program)
 
@@ -49,7 +57,7 @@ class Renderer:
         self.load_assets()
 
         self.mesh = Mesh().build_colored_quad()
-        self.material = Material().load_from_file("textures/brickwall.jpg")
+        # self.material = Material().load_from_file("textures/brickwall.jpg")
 
         self.shaders: dict[int, Shader] = {}
         self.load_shaders()
@@ -63,6 +71,10 @@ class Renderer:
             shader.use()
             shader.upload_mat4(UNIFORM_TYPE_PROJECTION, projection_matrix)
 
+        self.light_direction = (0.0, -1.0, -1.0)
+        self.light_color = (1.0, 1.0, 1.0)
+        self.k = 0.3
+
     def load_assets(self) -> None:
         self.meshes[OBJECT_TYPE_QUAD] = Mesh().build_colored_quad()
         self.materials[OBJECT_TYPE_QUAD] = Material().load_from_file("textures/brickwall.jpg")
@@ -70,6 +82,11 @@ class Renderer:
         self.meshes[OBJECT_TYPE_MODEL] = Model(
             filename="models/Bullet.obj",
             pre_transform=Mat4().from_x_rotation(90.0) * Mat4().from_scale(0.15)
+        )
+
+        self.meshes[OBJECT_TYPE_MODEL2] = Model(
+            filename="models/Bullet.obj",
+            pre_transform=Mat4().from_x_rotation(90.0) * Mat4().from_scale(0.35)
         )
 
     def load_shaders(self) -> None:
@@ -82,6 +99,9 @@ class Renderer:
         for shader in self.shaders.values():
             shader.use()
             shader.upload_mat4(UNIFORM_TYPE_VIEW, view_transform)
+            shader.upload_vec3("light_direction", *self.light_direction)
+            shader.upload_vec3("light_color", *self.light_color)
+            shader.upload_float("k", self.k)
 
         for obj in objects:
             object_id = obj.object_id

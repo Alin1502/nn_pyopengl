@@ -1,15 +1,18 @@
 from __future__ import annotations
 from math_utils import Vec3, Mat4
 import numpy as np
-
+import pygame as pg
 
 class TransformComponent:
-    def __init__(self, x: float, y: float, z: float, yaw: float):
+    def __init__(self, x: float, y: float, z: float, yaw: float, pitch:float, roll:float):
         self.pos = Vec3(x, y, z)
         self.yaw = yaw
+        self.pitch = pitch
+        self.roll = roll
 
     def get_transformation(self) -> Mat4:
-        return (Mat4().from_translation(self.pos) * Mat4().from_y_rotation(self.yaw))
+        return (Mat4().from_translation(self.pos) * Mat4().from_y_rotation(self.yaw) 
+                * Mat4().from_x_rotation(self.pitch) * Mat4().from_z_rotation(self.roll) )
 
 
 class CameraComponent:
@@ -54,8 +57,8 @@ class CameraComponent:
 
 
 class BasicObject:
-    def __init__(self, object_id: int, x: float, y: float, z: float, material=None):
-        self.transform_component = TransformComponent(x, y, z, 0.0)
+    def __init__(self, object_id: int, x: float, y: float, z: float, pitch:float, yaw:float, roll:float, material=None):
+        self.transform_component = TransformComponent(x, y, z, pitch, yaw, roll)
         self.object_id = object_id
         self.material = material
 
@@ -67,7 +70,7 @@ class Player:
     HEIGHT = 1.0
 
     def __init__(self):
-        self.transform_component = TransformComponent(0.0, 0.0, 0.0, 0.0)
+        self.transform_component = TransformComponent(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
         camera_pos = self.transform_component.pos + Vec3(0, Player.HEIGHT, 0)
         self.camera_component = CameraComponent(camera_pos)
 
